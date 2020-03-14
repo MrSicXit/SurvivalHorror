@@ -2,23 +2,25 @@
 using System.Collections.Generic;
 using UnityEngine;
 
-[RequireComponent(typeof(Rigidbody))]
-
-public class CharacterController : MonoBehaviour
+public class Movement : MonoBehaviour
 {
     //takes the movement of the mouse
     Vector2 mouseLook; //keep track of how much movement the camera has made
     Vector2 smoothV;
+    Vector3 moveDirection = Vector3.zero;
 
+    [SerializeField] CharacterController controller;
     [SerializeField] Transform cameraPosition;
 
     [SerializeField] float sensitivity = 5f;
     [SerializeField] float smoothing = 2f; //smooth down the movement of the mouse to make it less erratic
     [SerializeField] float minY = -90f;
     [SerializeField] float maxY = 90f;
+    [SerializeField] float gravity = 20.0f;
 
     [SerializeField] float walkSpeed = 2.5f;
     [SerializeField] float runSpeed = 4f;
+    [SerializeField] float jumpSpeed = 8.0f;
     [SerializeField] float runHeadBobbingMultiplier = 1.5f;
     [SerializeField] float headBobbingSpeed = 0.18f;
     [SerializeField] float headBobbingAmount = 0.2f;
@@ -46,6 +48,7 @@ public class CharacterController : MonoBehaviour
     // Update is called once per frame
     void Update()
     {
+
         if (!paused)
         {
             //take the mouse x and y values as they come in
@@ -63,11 +66,11 @@ public class CharacterController : MonoBehaviour
 
             //----------
 
-            horizontal = Input.GetAxis("Horizontal");
-            vertical = Input.GetAxis("Vertical");
+            //horizontal = Input.GetAxis("Horizontal");
+            //vertical = Input.GetAxis("Vertical");
 
-            translation = vertical * walkSpeed * Time.deltaTime;
-            straffe = horizontal * walkSpeed * Time.deltaTime;
+            //translation = vertical * walkSpeed * Time.deltaTime;
+            //straffe = horizontal * walkSpeed * Time.deltaTime;
 
             walkBobbingAmount = headBobbingAmount;
             walkBobbingSpeed = headBobbingSpeed;
@@ -76,25 +79,42 @@ public class CharacterController : MonoBehaviour
             runBobbingSpeed = headBobbingSpeed * runHeadBobbingMultiplier;
 
 
-            if (Input.GetKey(KeyCode.LeftShift))
+            //if (Input.GetKey(KeyCode.LeftShift))
+            //{
+            //    running = true;
+            //}
+            //else
+            //{
+            //    running = false;
+            //}
+
+            //if (running)
+            //{
+            //    translation = vertical * runSpeed * Time.deltaTime;
+            //    straffe = horizontal * runSpeed * Time.deltaTime;
+            //}
+
+            if (controller.isGrounded)
             {
-                running = true;
-            }
-            else
-            {
-                running = false;
+                // We are grounded, so recalculate
+                // move direction directly from axes
+
+                moveDirection = new Vector3(Input.GetAxis("Horizontal"), 0.0f, Input.GetAxis("Vertical"));
+                moveDirection *= walkSpeed;
+
+                if (Input.GetButton("Jump"))
+                {
+                    moveDirection.y = jumpSpeed;
+                }
             }
 
-            if (running)
-            {
-                translation = vertical * runSpeed * Time.deltaTime;
-                straffe = horizontal * runSpeed * Time.deltaTime;
-            }
+            moveDirection.y -= gravity * Time.deltaTime;
+            controller.Move(moveDirection * Time.deltaTime);
 
             Headbobbing();
             transform.Translate(straffe, 0, translation);
 
-           
+
             if (Input.GetKeyDown(KeyCode.Escape))
             {
                 Time.timeScale = 0;
@@ -110,7 +130,7 @@ public class CharacterController : MonoBehaviour
     void Headbobbing()
     {
 
-        Vector3 cSharpConversion = transform.localPosition;
+        Vector3 cSharpConversion = cameraPosition.localPosition;
 
         if (Mathf.Abs(horizontal) == 0 && Mathf.Abs(vertical) == 0)
         {
@@ -144,7 +164,7 @@ public class CharacterController : MonoBehaviour
                 translateChange = waveslice * walkBobbingAmount;
             }
             float totalAxes = Mathf.Abs(horizontal) + Mathf.Abs(vertical);
-            totalAxes = Mathf.Clamp(totalAxes, 0.0f, 1.0f);
+            totalAxes = Mathf.Clamp(totalAxes, 0.25f, 0.75f);
             translateChange = totalAxes * translateChange;
             cSharpConversion.y = midpoint + translateChange;
         }
@@ -152,16 +172,11 @@ public class CharacterController : MonoBehaviour
         {
             cSharpConversion.y = midpoint;
         }
-        transform.localPosition = cSharpConversion;
+        cameraPosition.localPosition = cSharpConversion;
     }
 
     public void Pausing()
     {
         paused = !paused;
     }
-}
-
-class Player
-{
-
 }
